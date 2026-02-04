@@ -167,8 +167,8 @@
                 return data.filter(item => item.type === 'file' && ['jpg', 'jpeg', 'png'].some(ext => item.name.toLowerCase().endsWith('.' + ext))).map(item => ({
                     url: item.download_url,
                     path: item.path,
-                    name: item.name,
-                    folder: path
+                    name: item.name.replace(/`/g, '\`'),
+                    folder: path.replace(/`/g, '\`')
                 }));
             } catch (error) {
                 console.error(`Error fetching folder ${path}:`, error);
