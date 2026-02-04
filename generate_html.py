@@ -19,7 +19,7 @@ html = '''<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lexipol Assets Image Grid</title>
+    <title>Lexipol Assets Image Gallery</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -34,16 +34,19 @@ html = '''<!DOCTYPE html>
             padding: 20px;
             text-align: center;
         }
-        .search-container {
+        .filters {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
-        #search {
-            width: 100%;
-            max-width: 400px;
+        #search, #folderSelect {
             padding: 10px;
             font-size: 16px;
             border: 1px solid #ccc;
             border-radius: 5px;
+            min-width: 200px;
         }
         .grid {
             display: grid;
@@ -57,6 +60,7 @@ html = '''<!DOCTYPE html>
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             overflow: hidden;
             transition: transform 0.2s;
+            display: none;
         }
         .item:hover {
             transform: translateY(-5px);
@@ -91,52 +95,106 @@ html = '''<!DOCTYPE html>
         button:hover {
             background-color: #005a9e;
         }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
     <header>
         <h1>Lexipol Assets Image Gallery</h1>
-        <div class="search-container">
-            <input type="text" id="search" placeholder="Search by filename, folder, or metadata...">
+        <div class="filters">
+            <input type="text" id="search" placeholder="Search by filename...">
+            <select id="folderSelect">
+                <option value="">All Folders</option>
+            </select>
         </div>
     </header>
+    <div class="loading">Loading images...</div>
     <div class="grid" id="grid">
-'''
-
-for img in sorted(images):
-    url = base_url + img.replace(' ', '%20')
-    filename = os.path.basename(img)
-    folder = os.path.dirname(img)
-    html += f'''
-        <div class="item" data-filename="{filename.lower()}" data-folder="{folder.lower()}" data-url="{url.lower()}">
-            <img src="{url}" alt="{filename}">
-            <div class="info">
-                <div class="filename">{filename}</div>
-                <div class="folder">Folder: {folder}</div>
-                <button onclick="navigator.clipboard.writeText('{url}')">Copy URL</button>
-            </div>
-        </div>
-'''
-
-html += '''
     </div>
     <script>
         const searchInput = document.getElementById('search');
-        const items = document.querySelectorAll('.item');
+        const folderSelect = document.getElementById('folderSelect');
+        const grid = document.getElementById('grid');
+        const loading = document.querySelector('.loading');
+        let allImages = [];
+        let folders = new Set();
 
-        searchInput.addEventListener('input', function() {
-            const query = this.value.toLowerCase();
-            items.forEach(item => {
-                const filename = item.dataset.filename;
-                const folder = item.dataset.folder;
-                const url = item.dataset.url;
-                if (filename.includes(query) || folder.includes(query) || url.includes(query)) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
+        async function fetchImages() {
+            try {
+                const response = await fetch('https://api.github.com/repos/TrainingContentTeam/Lexipol_Assets/contents');
+                const data = await response.json();
+                const imagePromises = [];
+
+                for (const item of data) {
+                    if (item.type === 'dir') {
+                        folders.add(item.name);
+                        imagePromises.push(fetchFolderImages(item.path));
+                    }
+                }
+
+                const imageArrays = await Promise.all(imagePromises);
+                allImages = imageArrays.flat();
+
+                populateFolderDropdown();
+                displayImages();
+                loading.style.display = 'none';
+            } catch (error) {
+                console.error('Error fetching images:', error);
+                loading.textContent = 'Error loading images. Please try again later.';
+            }
+        }
+
+        async function fetchFolderImages(path) {
+            const response = await fetch(`https://api.github.com/repos/TrainingContentTeam/Lexipol_Assets/contents/${path}`);
+            const data = await response.json();
+            return data.filter(item => item.type === 'file' && /\.(jpg|jpeg|png)$/i.test(item.name)).map(item => ({
+                url: item.download_url,
+                path: item.path,
+                name: item.name,
+                folder: path
+            }));
+        }
+
+        function populateFolderDropdown() {
+            folders.forEach(folder => {
+                const option = document.createElement('option');
+                option.value = folder;
+                option.textContent = folder;
+                folderSelect.appendChild(option);
+            });
+        }
+
+        function displayImages() {
+            grid.innerHTML = '';
+            const searchQuery = searchInput.value.toLowerCase();
+            const selectedFolder = folderSelect.value;
+
+            allImages.forEach(img => {
+                if ((selectedFolder === '' || img.folder === selectedFolder) &&
+                    (searchQuery === '' || img.name.toLowerCase().includes(searchQuery))) {
+                    const item = document.createElement('div');
+                    item.className = 'item';
+                    item.innerHTML = `
+                        <img src="${img.url}" alt="${img.name}">
+                        <div class="info">
+                            <div class="filename">${img.name}</div>
+                            <div class="folder">Folder: ${img.folder}</div>
+                            <button onclick="navigator.clipboard.writeText('${img.url}')">Copy URL</button>
+                        </div>
+                    `;
+                    grid.appendChild(item);
                 }
             });
-        });
+        }
+
+        searchInput.addEventListener('input', displayImages);
+        folderSelect.addEventListener('change', displayImages);
+
+        fetchImages();
     </script>
 </body>
 </html>
