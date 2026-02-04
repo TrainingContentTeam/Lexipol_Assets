@@ -40,6 +40,18 @@ html = '''<!DOCTYPE html>
             gap: 20px;
             margin-bottom: 20px;
             flex-wrap: wrap;
+            align-items: center;
+        }
+        #copyAll {
+            padding: 10px 16px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+            cursor: pointer;
+        }
+        #copyAll:hover {
+            background-color: #e0e0e0;
         }
         #search, #folderSelect {
             padding: 10px;
@@ -82,17 +94,23 @@ html = '''<!DOCTYPE html>
             color: #666;
             margin-bottom: 10px;
         }
-        button {
-            background-color: #007acc;
+        .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .download-btn {
+            background-color: #28a745;
             color: white;
             border: none;
             padding: 8px 16px;
             border-radius: 4px;
-            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
             transition: background-color 0.2s;
         }
-        button:hover {
-            background-color: #005a9e;
+        .download-btn:hover {
+            background-color: #218838;
         }
         .loading {
             text-align: center;
@@ -109,6 +127,7 @@ html = '''<!DOCTYPE html>
             <select id="folderSelect">
                 <option value="">All Folders</option>
             </select>
+            <button id="copyAll">Copy All URLs in Folder</button>
         </div>
     </header>
     <div class="loading">Loading images...</div>
@@ -197,7 +216,10 @@ html = '''<!DOCTYPE html>
                         <div class="info">
                             <div class="filename">${img.name}</div>
                             <div class="folder">Folder: ${img.folder}</div>
-                            <button onclick="navigator.clipboard.writeText('${img.url}')">Copy URL</button>
+                            <div class="buttons">
+                                <button onclick="navigator.clipboard.writeText('${img.url}')">Copy URL</button>
+                                <a href="${img.url}" download="${img.name}" class="download-btn">Download</a>
+                            </div>
                         </div>
                     `;
                     grid.appendChild(item);
@@ -207,6 +229,22 @@ html = '''<!DOCTYPE html>
 
         searchInput.addEventListener('input', displayImages);
         folderSelect.addEventListener('change', displayImages);
+
+        document.getElementById('copyAll').addEventListener('click', function() {
+            const selectedFolder = folderSelect.value;
+            if (selectedFolder === '') {
+                alert('Please select a specific folder to copy URLs.');
+                return;
+            }
+            const folderImages = allImages.filter(img => img.folder === selectedFolder);
+            const text = folderImages.map(img => `${img.name}: ${img.url}`).join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                alert(`Copied ${folderImages.length} URLs to clipboard.`);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy URLs.');
+            });
+        });
 
         fetchImages();
     </script>
