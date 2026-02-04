@@ -264,7 +264,7 @@ html = '''<!DOCTYPE html>
                 return;
             }
             const folderImages = allImages.filter(img => img.folder === selectedFolder);
-            const text = folderImages.map(img => `${img.name}: ${img.url}`).join('\n');
+            const text = folderImages.map(img => img.name + ': ' + img.url).join('\\n');
             navigator.clipboard.writeText(text).then(() => {
                 alert(`Copied ${folderImages.length} URLs to clipboard.`);
             }).catch(err => {
