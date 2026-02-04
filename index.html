@@ -167,8 +167,8 @@
                 return data.filter(item => item.type === 'file' && ['jpg', 'jpeg', 'png'].some(ext => item.name.toLowerCase().endsWith('.' + ext))).map(item => ({
                     url: item.download_url,
                     path: item.path,
-                    name: item.name.replace(/`/g, '\`'),
-                    folder: path.replace(/`/g, '\`')
+                    name: item.name,
+                    folder: path
                 }));
             } catch (error) {
                 console.error(`Error fetching folder ${path}:`, error);
@@ -195,17 +195,44 @@
                     (searchQuery === '' || img.name.toLowerCase().includes(searchQuery))) {
                     const item = document.createElement('div');
                     item.className = 'item';
-                    item.innerHTML = `
-                        <img src="${img.url}" alt="${img.name}">
-                        <div class="info">
-                            <div class="filename">${img.name}</div>
-                            <div class="folder">Folder: ${img.folder}</div>
-                            <div class="buttons">
-                                <button onclick="navigator.clipboard.writeText('${img.url}')">Copy URL</button>
-                                <a href="${img.url}" download="${img.name}" class="download-btn">Download</a>
-                            </div>
-                        </div>
-                    `;
+                    
+                    const imgEl = document.createElement('img');
+                    imgEl.src = img.url;
+                    imgEl.alt = img.name;
+                    item.appendChild(imgEl);
+                    
+                    const info = document.createElement('div');
+                    info.className = 'info';
+                    
+                    const filename = document.createElement('div');
+                    filename.className = 'filename';
+                    filename.textContent = img.name;
+                    info.appendChild(filename);
+                    
+                    const folder = document.createElement('div');
+                    folder.className = 'folder';
+                    folder.textContent = 'Folder: ' + img.folder;
+                    info.appendChild(folder);
+                    
+                    const buttons = document.createElement('div');
+                    buttons.className = 'buttons';
+                    
+                    const copyBtn = document.createElement('button');
+                    copyBtn.textContent = 'Copy URL';
+                    copyBtn.addEventListener('click', function() {
+                        navigator.clipboard.writeText(img.url);
+                    });
+                    buttons.appendChild(copyBtn);
+                    
+                    const dlBtn = document.createElement('a');
+                    dlBtn.href = img.url;
+                    dlBtn.download = img.name;
+                    dlBtn.className = 'download-btn';
+                    dlBtn.textContent = 'Download';
+                    buttons.appendChild(dlBtn);
+                    
+                    info.appendChild(buttons);
+                    item.appendChild(info);
                     grid.appendChild(item);
                 }
             });
