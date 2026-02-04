@@ -60,7 +60,6 @@ html = '''<!DOCTYPE html>
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             overflow: hidden;
             transition: transform 0.2s;
-            display: none;
         }
         .item:hover {
             transform: translateY(-5px);
