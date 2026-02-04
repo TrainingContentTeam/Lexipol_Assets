@@ -126,7 +126,11 @@ html = '''<!DOCTYPE html>
         async function fetchImages() {
             try {
                 const response = await fetch('https://api.github.com/repos/TrainingContentTeam/Lexipol_Assets/contents');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
                 const data = await response.json();
+                console.log('Root data:', data);
                 const imagePromises = [];
 
                 for (const item of data) {
@@ -138,26 +142,36 @@ html = '''<!DOCTYPE html>
 
                 const imageArrays = await Promise.all(imagePromises);
                 allImages = imageArrays.flat();
+                console.log('All images:', allImages);
 
                 populateFolderDropdown();
                 displayImages();
                 loading.style.display = 'none';
             } catch (error) {
                 console.error('Error fetching images:', error);
-                loading.textContent = 'Error loading images. Please try again later.';
+                loading.textContent = 'Error loading images: ' + error.message + '. Check console for details.';
             }
         }
 
         async function fetchFolderImages(path) {
-            const encodedPath = encodeURIComponent(path);
-            const response = await fetch(`https://api.github.com/repos/TrainingContentTeam/Lexipol_Assets/contents/${encodedPath}`);
-            const data = await response.json();
-            return data.filter(item => item.type === 'file' && ['jpg', 'jpeg', 'png'].some(ext => item.name.toLowerCase().endsWith('.' + ext))).map(item => ({
-                url: item.download_url,
-                path: item.path,
-                name: item.name,
-                folder: path
-            }));
+            try {
+                const encodedPath = encodeURIComponent(path);
+                const response = await fetch(`https://api.github.com/repos/TrainingContentTeam/Lexipol_Assets/contents/${encodedPath}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} for ${path}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                console.log(`Data for ${path}:`, data);
+                return data.filter(item => item.type === 'file' && ['jpg', 'jpeg', 'png'].some(ext => item.name.toLowerCase().endsWith('.' + ext))).map(item => ({
+                    url: item.download_url,
+                    path: item.path,
+                    name: item.name,
+                    folder: path
+                }));
+            } catch (error) {
+                console.error(`Error fetching folder ${path}:`, error);
+                return []; // Return empty array on error
+            }
         }
 
         function populateFolderDropdown() {
